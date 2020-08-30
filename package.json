@@ -1,26 +1,30 @@
 {
-  "name": "webpack-fundamentals",
-  "version": "0.0.1",
-  "description": "Practising Webpack",
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Backend using Express",
+  "main": "index.js",
   "scripts": {
-    "build": "webpack --mode=production",
-    "start": "webpack-dev-server --mode=development"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "client-install": "npm install --prefix client",
+    "start": "node index.js",
+    "client": "npm start --prefix client",
+    "server": "nodemon server.js",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vinicius77/webpack-fundamentals.git"
+  },
+  "author": "Vinicius C. Bonifácio",
   "license": "MIT",
-  "devDependencies": {
-    "@babel/core": "^7.11.4",
-    "@babel/preset-env": "^7.11.0",
-    "@babel/preset-react": "^7.10.4",
-    "babel-loader": "^8.1.0",
-    "css-loader": "^4.2.2",
-    "style-loader": "^1.2.1",
-    "webpack": "^4.44.1",
-    "webpack-cli": "^3.3.12",
-    "webpack-dev-server": "^3.11.0"
+  "bugs": {
+    "url": "https://github.com/vinicius77/webpack-fundamentals/issues"
   },
+  "homepage": "https://github.com/vinicius77/webpack-fundamentals#readme",
   "dependencies": {
-    "@babel/polyfill": "^7.10.4",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "concurrently": "^5.3.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "nodemon": "^2.0.4"
   }
 }

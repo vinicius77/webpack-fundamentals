@@ -372,4 +372,247 @@ The output of the minification process resembles old-school C code; all of the c
 function h(){if(!d){var e=u(p);d=!0;for(var t=c.length;t;){for(s=c,c=[];++f<t;)s&&s[f].run();f=-1,t=c.length}s=null,d=!1,function(e){if(o===clearTimeout)return clearTimeout(e);if((o===l||!o)&&clearTimeout)return o=clearTimeout,clearTimeout(e);try{o(e)}catch(t){try{return o.call(null,e)}catch(t){return o.call(this,e)}}}(e)}}a.nextTick=function(e){var t=new Array(arguments.length-1);if(arguments.length>1)
 ```
 
-## Development and production configuration
+### Backend
+
+### Development and production configuration
+
+Storing the following content in the db.json file:
+
+```javascript
+{
+  "notes": [
+    {
+      "important": true,
+      "content": "HTML is easy",
+      "id": "5a3b8481bb01f9cb00ccb4a9"
+    },
+    {
+      "important": false,
+      "content": "Mongo can save js objects",
+      "id": "5a3b920a61e8c8d3f484bdd0"
+    }
+  ]
+}
+```
+### Add the scripts
+
+```
+npm init
+```
+
+```
+npm install express nodemon cors concurrently
+```
+
+```json
+"proxy": "http://localhost:5000",
+"scripts": {
+  "test": "echo \"Error: no test specified\" && exit 1",
+  "client-install": "npm install --prefix client",
+  "start": "node index.js",
+  "client": "npm start --prefix client",
+  "server": "nodemon server.js",
+  "dev": "concurrently \"npm run server\" \"npm run client\""
+},
+```
+### Creating the index.js file in the root directory (server)
+
+```javascript
+const express = require("express");
+const path = require("path");
+const cors = require("cors");
+
+const app = express();
+
+app.use(express.json());
+
+/* Allows Cross-Origin Resource Sharing */
+app.use(cors());
+
+app.use("/api/notes", require("./routes/api/notes"));
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => console.log(`Listening on Port: ${PORT}`));
+```
+
+### Creating The Router / Controller
+
+_routes/api/notes.file_:
+
+```javascript
+const express = require("express");
+const router = express.Router();
+
+const Notes = require("../../db.json");
+
+router.get("/", async (request, response) => {
+  return await response.json(Notes);
+});
+
+module.exports = router;
+```
+
+Now the server is running on http://localhost:5000/api/notes
+
+Or server and client running together usinh the script created before:
+
+```
+npm run dev
+```
+
+**Hint**: In order to avoid _Error: listen EADDRINUSE :::5000_, we can set the proxy on client side, inside of the _package.json_:
+
+```json
+"proxy": "http://localhost:3000",
+```
+
+## Going Back to the Client Side
+
+For fetching data from the server.
+```
+npm i axios
+```
+
+```jsx
+import React, { useState, useEffect } from 'react'
+import axios from 'axios'
+
+const useNotes = (url) => {
+  const [notes, setNotes] = useState([])
+  
+  useEffect(() => {
+    axios
+    .get(url)
+    .then(response => { setNotes(response.data) })
+    }, [url])  
+    
+    return notes
+}
+
+const App = () => {
+  const [counter, setCounter] = useState(0)
+  const [values, setValues] = useState([])
+  const url = 'https://blooming-atoll-75500.herokuapp.com/api/notes'
+  const notes = useNotes(url)
+  
+  const handleClick = () => {
+    setCounter(counter + 1)
+    setValues(values.concat(counter))
+  }
+
+  return (
+    <div className="container">
+      hello webpack {counter} clicks
+      <button onClick={handleClick} >press</button>
+      <div>{notes.length} notes on server {url}</div>    </div>
+  )
+}
+
+export default App
+```
+The address of the backend server is currently hardcoded in the application code. 
+
+Let's change the configuration object in the _webpack.config.js_ file to be a function instead of an object:
+
+```javascript
+const path = require('path');
+
+const config = (env, argv) => {
+  return {
+    entry: './src/index.js',
+    output: {
+      // ...
+    },
+    devServer: {
+      // ...
+    },
+    devtool: 'source-map',
+    module: {
+      // ...
+    },
+    plugins: [
+      // ...
+    ],
+  }
+}
+
+module.exports = config
+```
+
+The definition remains almost exactly the same, except for the fact that the configuration object is now returned by the function. The function receives the two parameters, env and argv, the second of which can be used for accessing the mode that is defined in the npm script. 
+
+We can also use webpack's DefinePlugin for defining global default constants that can be used in the bundled code. Let's define a new global constant BACKEND_URL, that gets a different value depending on the environment that the code is being bundled for:
+
+```javascript
+const path = require('path')
+const webpack = require('webpack')
+
+const config = (env, argv) => {
+  console.log('argv', argv.mode)
+
+  const backend_url = argv.mode === 'production' ? 
+  'https://blooming-atoll-75500.herokuapp.com/api/notes'
+  : 'http://localhost:3001/api/notes'
+
+  return {
+    entry: './src/index.js',
+    output: {
+      path: path.resolve(__dirname, 'build'),
+      filename: 'main.js'
+    },
+    devServer: {
+      contentBase: path.resolve(__dirname, 'build'),
+      compress: true,
+      port: 3000,
+    },
+    devtool: 'source-map',
+    module: {
+      // ...
+    },
+    plugins: [      
+      new webpack.DefinePlugin({ BACKEND_URL: JSON.stringify(backend_url) })    
+    ]  
+  }
+}
+
+module.exports = config
+```
+
+We can inspect the bundled production version of the application locally by executing the following command in the build directory after run <code>npm run build</code> at root client directory:
+
+```
+npx static-server
+```
+By default the bundled application will be available at http://localhost:9080.
+
+## Polyfill
+
+The application is finished and works with all relatively recent versions of modern browsers, with the exception of Internet Explorer. 
+
+The reason for this is that because of axios our code uses Promises, and no existing version of IE supports them:
+
+*Thanks IE will be shutdown soon this year*
+
+f we want the application to be IE-compatible we need to add a polyfill, which is code that adds the missing functionality to older browsers.
+
+The polyfill provided by the promise-polyfill library is easy to use, we simply have to add the following to our existing application code:
+
+```javascript
+import PromisePolyfill from 'promise-polyfill'
+
+if (!window.Promise) {
+  window.Promise = PromisePolyfill
+}
+```
+
+## EJECT
+The create-react-app tool uses webpack behind the scenes. If the default configuration is not enough, it is possible to eject the project which will get rid of all of the black magic, and the default configuration files will be stored in the config directory and in a modified package.json file.
+
+If you eject an application created with create-react-app, there is no return and all of the configuration will have to be maintained manually. The default configuration is not trivial, and instead of ejecting from a create-react-app application, a better alternative may be to write your own webpack configuration from the get-go.
+
+Going through and reading the configuration files of an ejected application is still recommended and extremely educational.
+Exercises
+
+
+
